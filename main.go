@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
@@ -29,6 +30,7 @@ func main() {
 	userAgent := flag.String("a", "discover: https://github.com/bruston/discover", "user-agent to use")
 	cookieFile := flag.String("cookies", "", "file containing cookies")
 	prefix := flag.String("p", "", "prefix to add to word/directory")
+	insecure := flag.Bool("k", false, "ignore HTTPS errors")
 	flag.Parse()
 	if *target == "" {
 		fmt.Println("You must specify a target URL with the -u parameter.")
@@ -72,6 +74,11 @@ func main() {
 			return http.ErrUseLastResponse
 		},
 		Timeout: time.Second * time.Duration(*timeout),
+	}
+	if *insecure {
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
 	}
 
 	if !strings.HasSuffix(*target, "/") {
