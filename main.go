@@ -94,13 +94,13 @@ func main() {
 				if *extension != "" {
 					v = v + "." + *extension
 				}
-				code, word, err := doReq(client, *target, *hostHeader, *prefix+v, *customKey, *customVal, *userAgent, cookies)
+				code, word, size, err := doReq(client, *target, *hostHeader, *prefix+v, *customKey, *customVal, *userAgent, cookies)
 				if err != nil {
 					continue
 				}
 				for _, v := range successCodes {
 					if v == code {
-						fmt.Printf("/%s %d\n", word, code)
+						fmt.Printf("/%s %d %d\n", word, code, size)
 					}
 				}
 			}
@@ -124,10 +124,10 @@ func cleanCodes(successCodes string) ([]int, error) {
 	return codes, nil
 }
 
-func doReq(client *http.Client, url, host, word, customKey, customVal, userAgent, cookies string) (int, string, error) {
+func doReq(client *http.Client, url, host, word, customKey, customVal, userAgent, cookies string) (int, string, int64, error) {
 	req, err := http.NewRequest("GET", url+word, nil)
 	if err != nil {
-		return 0, "", err
+		return 0, "", 0, err
 	}
 	if host != "" {
 		req.Host = host
@@ -142,9 +142,9 @@ func doReq(client *http.Client, url, host, word, customKey, customVal, userAgent
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Print(err)
-		return 0, "", err
+		return 0, "", 0, err
 	}
 	defer resp.Body.Close()
-	io.Copy(ioutil.Discard, resp.Body)
-	return resp.StatusCode, word, nil
+	n, _ := io.Copy(ioutil.Discard, resp.Body)
+	return resp.StatusCode, word, n, nil
 }
