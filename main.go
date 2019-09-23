@@ -27,6 +27,7 @@ func main() {
 	customVal := flag.String("cv", "", "add a custom header to all requests (value)")
 	extension := flag.String("e", "", "file extension to add (without dot prefix)")
 	success := flag.String("s", "200, 204, 301, 302, 307", "status codes indicating success, seperated by commas")
+	failure := flag.String("f", "", "status codes indicating failure, seperated by commas")
 	userAgent := flag.String("a", "discover: https://github.com/bruston/discover", "user-agent to use")
 	cookieFile := flag.String("cookies", "", "file containing cookies")
 	prefix := flag.String("p", "", "prefix to add to word/directory")
@@ -38,6 +39,7 @@ func main() {
 	}
 	if *wordList == "" {
 		fmt.Println("You must specify a word list with the -w parameter.")
+		return
 	}
 
 	cookies := ""
@@ -68,6 +70,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	failureCodes, _ := cleanCodes(*failure)
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -96,6 +99,19 @@ func main() {
 				}
 				code, word, size, err := doReq(client, *target, *hostHeader, *prefix+v, *customKey, *customVal, *userAgent, cookies)
 				if err != nil {
+					continue
+				}
+				if len(failureCodes) != 0 {
+					fail := false
+					for _, v := range failureCodes {
+						if v == code {
+							fail = true
+							break
+						}
+					}
+					if !fail {
+						fmt.Printf("/%s %d %d\n", word, code, size)
+					}
 					continue
 				}
 				for _, v := range successCodes {
